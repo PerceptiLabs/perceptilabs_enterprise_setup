@@ -1,0 +1,41 @@
+---
+- name: Check for nvidia-smi and don't try to install if it's not there
+  shell: (which nvidia-smi && nvidia_smi) || true
+  register: which_output
+  changed_when: false
+- when: which_output.stdout_lines|length > 0
+  become: yes
+  block:
+  - name: Add the nvidia apt key
+    ansible.builtin.apt_key:
+      url: "{{ gpg_key_url }}"
+      state: present
+
+  - name: get the sources
+    get_url:
+      url: "{{ apt_sources_url }}"
+      dest: /etc/apt/sources.list.d/nvidia-container-runtime.list
+
+  - name: install the package
+    apt:
+      pkg:
+      - nvidia-container-runtime
+      update_cache: yes
+    notify:
+      - restart docker
+
+# due to https://github.com/ansible/ansible/issues/41313
+# ansible doesn't honor when clauses on meta tasks for some reason
+# pop out of the block, do the meta, and then restart it with the same when clause
+- meta: flush_handlers
+- when: which_output.stdout_lines|length > 0
+  block:
+  - name: check docker runs
+    ansible.builtin.command: docker run --gpus all hello-world
+    register: hello_output
+    changed_when: false
+
+  - name: Fail if docker output is wrong
+    fail:
+      msg: Expected to find "Hello from Docker" in the output, but did not.
+    when: hello_output.stdout.find("Hello from Docker") == 0

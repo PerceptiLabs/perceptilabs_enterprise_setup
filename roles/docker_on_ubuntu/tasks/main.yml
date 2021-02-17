@@ -1,0 +1,68 @@
+---
+- name: Check whether docker is already installed
+  shell: (which docker >/dev/null && docker -v) || true
+  changed_when: false
+  register: docker_version_output
+  failed_when: false
+
+- when: docker_version_output.stdout_lines|length == 0
+  block:
+  - name: require Ubuntu
+    fail:
+      msg: This role supports Ubuntu only
+    when: ansible_distribution != 'Ubuntu'
+
+
+  - name: Add the docker apt key
+    become: yes
+    ansible.builtin.apt_key:
+      url: "{{ apt_key_url }}"
+      state: present
+
+  - name: add docker apt repo
+    become: yes
+    ansible.builtin.apt_repository:
+      repo: "{{ apt_repo }}"
+      state: present
+
+  - name: install docker
+    become: yes
+    apt:
+      pkg:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-compose
+      state: latest
+      update_cache: yes
+      cache_valid_time: 3600
+
+  - name: set group
+    become: yes
+    group:
+      name: docker
+
+  - name: add group to user
+    become: yes
+    user:
+      name: "{{ ansible_user }}"
+      append: yes
+      groups: docker
+
+# due to https://github.com/ansible/ansible/issues/41313
+# ansible doesn't honor when clauses on meta tasks for some reason
+# pop out of the block, do the meta, and then restart it with the same when clause
+- name: reset connection
+  meta: reset_connection
+
+- when: docker_version_output.stdout_lines|length == 0
+  block:
+  - name: check docker runs
+    ansible.builtin.command: docker run hello-world
+    register: hello_output
+    changed_when: false
+
+  - name: check docker output for success
+    fail:
+      msg: Expected to find "Hello from Docker" in the output, but did not.
+    when: hello_output.stdout.find("Hello from Docker") == 0

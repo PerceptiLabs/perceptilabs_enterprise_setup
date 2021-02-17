@@ -1,0 +1,5 @@
+---
+# vars file for nvidiadocker
+distribution: "{{ ansible_distribution|lower }}{{ ansible_distribution_version }}"
+apt_sources_url: "https://nvidia.github.io/nvidia-container-runtime/{{ distribution }}/nvidia-container-runtime.list"
+gpg_key_url: https://nvidia.github.io/nvidia-container-runtime/gpgkey

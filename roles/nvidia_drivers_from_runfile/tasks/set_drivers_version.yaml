@@ -1,0 +1,16 @@
+---
+- name: get existing NVIDIA driver version
+  shell: (which nvidia-smi >/dev/null && nvidia-smi --query-gpu=driver_version --format=csv,noheader) || true
+  changed_when: false
+  register: version_output
+  failed_when: false
+
+- name: Set NVIDIA driver version
+  set_fact:
+    nvidia_driver_version: "{{ version_output.stdout_lines|first }}"
+  when: version_output.stdout_lines|length > 0
+
+- name: Check that existing NVIDIA driver is the supported version
+  assert:
+    that:
+      - nvidia_driver_version|d("410.129") == "410.129"

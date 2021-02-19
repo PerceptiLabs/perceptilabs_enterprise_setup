@@ -3,3 +3,32 @@
   roles:
     - role: nvidiadocker
 
+- hosts: all
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+    - include_vars:
+        file: docker_creds.yaml
+
+    - name: Creating plabs dir
+      file:
+        state: directory
+        path: "{{ ansible_user_dir }}/plabs"
+        mode: 0777
+    - name: Sending docker-compose.yml file
+      template:
+        src: docker-compose.yml.j2
+        dest: "{{ ansible_user_dir }}/docker-compose.yml"
+    - name: Log in to docker repo
+      community.docker.docker_login:
+        username: "{{ docker_username }}"
+        registry_url: "{{ docker_registry_url }}"
+        password: "{{ docker_password }}"
+        state: present
+    - name: Start the tool
+      community.docker.docker_compose:
+        state: present
+        project_src: "{{ ansible_user_dir }}"
+    - debug:
+        msg: "The tool is ready at http://{{ inventory_hostname }}:8080"

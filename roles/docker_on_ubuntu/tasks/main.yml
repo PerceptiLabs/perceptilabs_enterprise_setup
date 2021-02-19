@@ -32,7 +32,6 @@
         - docker-ce
         - docker-ce-cli
         - containerd.io
-        - docker-compose
       state: latest
       update_cache: yes
       cache_valid_time: 3600
@@ -62,7 +61,48 @@
     register: hello_output
     changed_when: false
 
+  - community.docker.docker_image:
+      name: hello-world
+      state: absent
+      force_absent: yes
+
   - name: check docker output for success
     fail:
       msg: Expected to find "Hello from Docker" in the output, but did not.
     when: hello_output.stdout.find("Hello from Docker") == 0
+
+- name: check whether docker-compose is installed
+  shell: (which docker-compose >/dev/null && docker-compose version --short) || true
+  changed_when: false
+  register: docker_compose_version_output
+  failed_when: false
+
+- when: (docker_compose_version_output.stdout|length == 0) or (docker_compose_version_output.stdout is version("1.20", "<"))
+  block:
+    # TODO: make sure we don't need this
+    # vars:
+    #   ansible_python_interpreter: /usr/bin/python3
+
+    - name: install pip 3
+      become: yes
+      apt:
+        name: python3-pip
+
+    - name: upgrade pip
+      pip:
+        name: pip
+        executable: pip3
+        state: latest
+
+    - name: install setuptools
+      pip:
+        name: setuptools
+        executable: pip3
+        state: latest
+
+    - name: install docker-compose
+      pip:
+        name: docker-compose
+        executable: pip3
+        state: latest
+

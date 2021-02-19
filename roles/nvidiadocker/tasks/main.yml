@@ -35,6 +35,11 @@
     register: hello_output
     changed_when: false
 
+  - community.docker.docker_image:
+      name: hello-world
+      state: absent
+      force_absent: yes
+
   - name: Fail if docker output is wrong
     fail:
       msg: Expected to find "Hello from Docker" in the output, but did not.

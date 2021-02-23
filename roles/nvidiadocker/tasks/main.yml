@@ -34,11 +34,8 @@
     ansible.builtin.command: docker run --gpus all hello-world
     register: hello_output
     changed_when: false
-
-  - community.docker.docker_image:
-      name: hello-world
-      state: absent
-      force_absent: yes
+    notify:
+      - remove hello world
 
   - name: Fail if docker output is wrong
     fail:

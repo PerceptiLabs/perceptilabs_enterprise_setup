@@ -1,0 +1,28 @@
+---
+- name: Install make and gcc packages
+  become: yes
+  apt:
+    pkg:
+    - make
+    - gcc
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Get nvidia drivers installer
+  get_url:
+    url: "{{ drivers_url }}"
+    mode: '0777'
+    dest: "{{ ansible_env.HOME }}/drivers_runfile"
+  register: get_drivers_result
+
+- name: Run the nvidia drivers installer
+  become: yes
+  command:
+    cmd: "{{ get_drivers_result.dest }} --ui none"
+    creates: /usr/bin/nvidia-smi
+
+- name: Clean up the drivers download
+  file:
+    state: absent
+    path: "{{ get_drivers_result.dest }}"

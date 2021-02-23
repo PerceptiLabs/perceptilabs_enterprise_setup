@@ -1,0 +1,19 @@
+---
+- name: install pciutils to get lspci
+  become: yes
+  apt:
+    pkg:
+      - pciutils
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: check for NVIDIA GPUs.
+  become: yes
+  command: "lspci -d 10de:"
+  register: lspci_output
+  changed_when: false
+
+- name: set nvidia_gpu_present fact
+  set_fact:
+    nvidia_gpu_present: "{{ (lspci_output is succeeded) and (lspci_output.stdout|length > 0) }}"

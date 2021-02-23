@@ -1,6 +1,6 @@
 ---
 - import_tasks: tasks/set_drivers_version.yaml
-- when: (nvidia_driver_version is undefined) or (nvidia_driver_version|length == 0)
+- when: nvidia_driver_version|d('', true)|length == 0
   block:
   - name: Check Ubuntu Release between 16.04 and 19.04
     assert:
@@ -8,55 +8,14 @@
         - ansible_distribution == 'Ubuntu'
         - ansible_distribution_version is version('16.04', '>=')
         - ansible_distribution_version is version('19.04', '<=')
-      fail_msg: The supported NVIDIA 410.129 drivers require Ubuntu 16.04-19.04. Got {{ ansible_distribution_version }}
+      fail_msg: The supported NVIDIA drivers require Ubuntu 16.04-19.04. Got {{ ansible_distribution_version }}
 
-  - name: install pciutils to get lspci
-    become: yes
-    apt:
-      pkg:
-        - pciutils
-      state: present
-      update_cache: yes
-      cache_valid_time: 3600
+    # Makes sure the nvidia_gpu_present fact is set
+  - import_tasks: tasks/get_gpu_presence.yaml
 
-  - name: check for NVIDIA GPUs.
-    become: yes
-    command: "lspci -d 10de:"
-    register: lspci_output
-    changed_when: false
+  - import_tasks: tasks/do_installation.yaml
+    when: nvidia_gpu_present and nvidia_driver_version is undefined
 
-  - set_fact:
-      nvidia_gpu_present: "{{ (lspci_output is succeeded) and (lspci_output.stdout|length > 0) }}"
-
+    # makes sure the nvidia_driver_version fact is set
   - import_tasks: tasks/set_drivers_version.yaml
 
-  - name: Install NVIDIA drivers from runfile
-    when: nvidia_gpu_present and nvidia_driver_version is undefined
-    block:
-    - name: Install make and gcc packages
-      become: yes
-      apt:
-        pkg:
-        - make
-        - gcc
-        state: present
-        update_cache: yes
-        cache_valid_time: 3600
-
-    - name: Get nvidia drivers installer
-      get_url:
-        url: "{{ drivers_url }}"
-        mode: '0777'
-        dest: "{{ ansible_env.HOME }}/drivers_runfile"
-      register: get_drivers_result
-
-    - name: Run the nvidia drivers installer
-      become: yes
-      ansible.builtin.command:
-        cmd: "{{ get_drivers_result.dest }} --ui none"
-        creates: /usr/bin/nvidia-smi
-
-    - name: Clean up the drivers download
-      file:
-        state: absent
-        path: "{{ get_drivers_result.dest }}"

@@ -42,7 +42,8 @@
 - meta: reset_connection
 
 - block:
-  - docker_container:
+  - name: run hello-world to test docker
+    docker_container:
       name: hello-world
       image: hello-world
       container_default_behavior: compatibility

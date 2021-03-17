@@ -1,9 +1,32 @@
 ---
+- name: "Set up the docker creds if they're not already there"
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - stat:
+        path: docker_creds.yaml
+      register: stat_result
+    - when: not stat_result.stat.exists
+      block:
+        - pause:
+            prompt: Enter the docker repo username
+          register: docker_user_entry
+        - pause:
+            prompt: Enter the docker repo password
+            echo: no
+          register: docker_pwd_entry
+        - copy:
+            dest: docker_creds.yaml
+            content: "{{ {'x': docker_user_entry.user_input, 'y': docker_pwd_entry.user_input} | to_nice_yaml }}"
+
 - hosts: all
   roles:
     - role: nvidiadocker
 
 - hosts: all
+  vars:
+    docker_tag: 0.11.10-GPU
+    docker_registry_url: perceptilabsenterprise.azurecr.io
   tasks:
     - include_vars:
         file: docker_creds.yaml

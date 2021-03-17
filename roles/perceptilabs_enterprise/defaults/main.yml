@@ -1,0 +1,4 @@
+---
+docker_tag: 0.11.10-GPU
+docker_username: perceptilabsenterprise
+docker_registry_url: perceptilabsenterprise.azurecr.io

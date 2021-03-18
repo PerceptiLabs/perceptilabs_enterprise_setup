@@ -27,22 +27,28 @@
       - docker-ce-cli
       - containerd.io
 
-- name: set group
-  become: yes
-  group:
-    name: docker
+# - name: set group
+#   become: yes
+#   group:
+#     name: docker
+#
+# - name: add group to user
+#   become: yes
+#   user:
+#     name: "{{ ansible_env.USER }}"
+#     append: yes
+#     groups: docker
 
-- name: add group to user
-  become: yes
-  user:
-    name: "{{ ansible_user }}"
-    append: yes
-    groups: docker
+# - meta: reset_connection
 
-- meta: reset_connection
+# - name: prompt user to restart playbook
+#   when: ansible_connection == "local"
+#   pause:
+#     prompt: Your user group has changed. Please log out and in again. Then rerun this script.
 
 - block:
   - name: run hello-world to test docker
+    become: yes
     docker_container:
       name: hello-world
       image: hello-world
@@ -52,6 +58,7 @@
     failed_when: (output is failed) or ('Hello from Docker' not in (output.container.Output|d('')))
   always:
   - name: remove hello world
+    become: yes
     docker_image:
       name: hello-world
       state: absent

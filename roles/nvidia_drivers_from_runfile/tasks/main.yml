@@ -8,7 +8,7 @@
         - ansible_distribution == 'Ubuntu'
         - ansible_distribution_version is version('16.04', '>=')
         - ansible_distribution_version is version('19.04', '<=')
-      fail_msg: The supported NVIDIA drivers require Ubuntu 16.04-19.04. Got {{ ansible_distribution_version }}
+      fail_msg: The supported NVIDIA drivers require Ubuntu 16.04. Got {{ ansible_distribution }} {{ ansible_distribution_version }}
 
     # Makes sure the nvidia_gpu_present fact is set
   - import_tasks: tasks/get_gpu_presence.yaml
